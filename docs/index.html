@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MetaMask Message Signing</title>
+    <title>MetaMask Message Signing with Ethers.js</title>
 </head>
 <body>
     <h1>MetaMask Message Signing Example</h1>
@@ -23,6 +23,7 @@
     <!-- Display Signed Message -->
     <p id="signedMessage"></p>
 
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
     <script>
         let account;
 
@@ -57,16 +58,16 @@
         async function signMessage() {
             const message = 'Hello, this is a test message!';
             try {
-                // Sign the message
-                const signature = await ethereum.request({
-                    method: 'personal_sign',
-                    params: [account, message]
-                });
+                // Use Ethers.js to sign the message
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                const signer = provider.getSigner();
+                const signature = await signer.signMessage(message);
+
                 document.getElementById('signedMessage').innerText = `Signed Message: ${signature}`;
                 document.getElementById('statusMessage').innerText = 'Message signed successfully! Verifying signature...';
 
                 // Verify the signature
-                const recoveredAddress = await verifySignature(message, signature);
+                const recoveredAddress = ethers.utils.verifyMessage(message, signature);
                 if (recoveredAddress.toLowerCase() === account.toLowerCase()) {
                     document.getElementById('statusMessage').innerText = 'Signature verified! The message was signed by the connected account.';
                 } else {
@@ -78,23 +79,9 @@
             }
         }
 
-        // Function to verify the signature using ethereumjs-util library
-        async function verifySignature(message, signature) {
-            // Hash the message to get the 32-byte message hash used in Ethereum personal_sign
-            const messageHash = web3.utils.sha3(`\x19Ethereum Signed Message:\n${message.length}${message}`);
-
-            // Use web3 or ethers.js to recover the address from the signature
-            const recoveredAddress = web3.eth.accounts.recover(messageHash, signature);
-
-            return recoveredAddress;
-        }
-
         // Add event listeners to the buttons
         document.getElementById('connectButton').addEventListener('click', connectMetaMask);
         document.getElementById('signButton').addEventListener('click', signMessage);
     </script>
-
-    <!-- Include web3.js library -->
-    <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.0.0-beta.36/dist/web3.min.js"></script>
 </body>
 </html>
