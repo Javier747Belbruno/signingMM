@@ -1,12 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MetaMask Message Signing</title>
 </head>
-
 <body>
     <h1>MetaMask Message Signing Example</h1>
 
@@ -16,19 +14,22 @@
     <!-- Button to Sign Message -->
     <button id="signButton" disabled>Sign Message</button>
 
-    <!-- Display Signed Message -->
-    <p id="signedMessage"></p>
+    <!-- Display Status Messages -->
+    <p id="statusMessage"></p>
 
     <!-- Display Account Address -->
     <p id="accountAddress"></p>
+
+    <!-- Display Signed Message -->
+    <p id="signedMessage"></p>
 
     <script>
         let account;
 
         // Check if MetaMask is installed
-        window.addEventListener('load', function () {
+        window.addEventListener('load', function() {
             if (typeof window.ethereum !== 'undefined') {
-                console.log('MetaMask is installed!');
+                document.getElementById('statusMessage').innerText = 'MetaMask is installed!';
             } else {
                 alert('Please install MetaMask!');
             }
@@ -38,37 +39,62 @@
         async function connectMetaMask() {
             if (typeof window.ethereum !== 'undefined') {
                 try {
-                    // Request account access if needed
-                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
                     account = accounts[0]; // Get the first account
                     document.getElementById('accountAddress').innerText = `Connected Account: ${account}`;
                     document.getElementById('signButton').disabled = false; // Enable the sign button
+                    document.getElementById('statusMessage').innerText = 'Successfully connected to MetaMask!';
                 } catch (error) {
                     console.error("User rejected the request", error);
+                    document.getElementById('statusMessage').innerText = 'Connection failed: User rejected the request.';
                 }
             } else {
                 alert('MetaMask is not installed. Please install it to use this app!');
             }
         }
 
-        // Function to sign a message
+        // Function to sign a message and verify the signature
         async function signMessage() {
             const message = 'Hello, this is a test message!';
             try {
+                // Sign the message
                 const signature = await ethereum.request({
                     method: 'personal_sign',
                     params: [account, message]
                 });
                 document.getElementById('signedMessage').innerText = `Signed Message: ${signature}`;
+                document.getElementById('statusMessage').innerText = 'Message signed successfully! Verifying signature...';
+
+                // Verify the signature
+                const recoveredAddress = await verifySignature(message, signature);
+                if (recoveredAddress.toLowerCase() === account.toLowerCase()) {
+                    document.getElementById('statusMessage').innerText = 'Signature verified! The message was signed by the connected account.';
+                } else {
+                    document.getElementById('statusMessage').innerText = 'Signature verification failed. The message was not signed by the connected account.';
+                }
             } catch (error) {
                 console.error('Error signing message:', error);
+                document.getElementById('statusMessage').innerText = 'Error signing message.';
             }
+        }
+
+        // Function to verify the signature using ethereumjs-util library
+        async function verifySignature(message, signature) {
+            // Hash the message to get the 32-byte message hash used in Ethereum personal_sign
+            const messageHash = web3.utils.sha3(`\x19Ethereum Signed Message:\n${message.length}${message}`);
+
+            // Use web3 or ethers.js to recover the address from the signature
+            const recoveredAddress = web3.eth.accounts.recover(messageHash, signature);
+
+            return recoveredAddress;
         }
 
         // Add event listeners to the buttons
         document.getElementById('connectButton').addEventListener('click', connectMetaMask);
         document.getElementById('signButton').addEventListener('click', signMessage);
     </script>
-</body>
 
+    <!-- Include web3.js library -->
+    <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.0.0-beta.36/dist/web3.min.js"></script>
+</body>
 </html>
